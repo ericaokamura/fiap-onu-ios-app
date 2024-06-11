@@ -1,70 +1,96 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ActivityIndicator, StyleSheet, View, Text, Image, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Anuncio } from '../models/anuncio';
+import axios from "axios";
 
 export default function HomeScreen() {
+
+  const [isLoading, setLoading] = useState(true);
+
+  const [data, setData] = useState<Anuncio[]>([]);
+
+  const [token, setToken] = useState<string>('');
+  
+  const body = {"nomeUsuario": "ericaokamura", "senha": "12345678" };
+
+  const getLogin = async (data: any) => {
+    const retorno = axios.post('http://192.168.15.27:8091/login', data, { headers: {'Access-Control-Allow-Origin': 'http://localhost:8081' }, withCredentials: false })
+      .then((response: any) => setToken(response.data.token))
+      .catch((err: any) => console.log(err)); 
+  }
+
+  console.log('token', token);
+
+  useEffect(() => {
+      getLogin(body);
+  }, []);
+
+  const getAnuncios = () => {
+    console.log(token);
+    return fetch('http://192.168.15.27:8091/anuncio/disponibilidade', { headers: { 'Authorization': `Bearer ${token}`, 'Access-Control-Allow-Origin': '*', "User-Agent": "Chrome/125.0.0.0" }})
+      .then(response => response.json())
+      .then(json => {
+        console.log(json);
+        return json.data;
+      })
+      .catch(error => {
+        console.error(error);
+      });
+  };
+
+  useEffect(() => {
+    getAnuncios();
+  }, []);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <View style={styles.menuBar}>
+        <Image 
+          source={require('../../assets/images/logo.png')} 
+          style={{width: 70, height: 70}}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+      <View style={styles.body}>
+        <View style={{flex: 1, padding: 24}}>
+          {isLoading ? (
+            <ActivityIndicator />
+          ) : (
+          <FlatList
+            data={data}
+            keyExtractor={({id}) => id}
+            renderItem={({item}) => (
+              <View>  
+                <Text>item.titulo</Text>
+                <Image style={{width: 50, height: 50}} source={{uri: 'data:image/png;base64, item.fotoAnuncio'}}/>
+              </View>
+            )}
+          />
+          )}
+        </View>
+      </View>
+    </View>
   );
+  
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    marginVertical: 0,
+    backgroundColor: '#3CA6A6',
+    height: 100,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  menuBar: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  body: {
+    marginVertical: 200,
   },
+  anuncios: {
+
+  }
 });
+
+
